@@ -8,9 +8,9 @@ export const PostLock = props => {
   const { validPassword } = props
   const { locale } = useGlobal()
 
-  const submitPassword = async () => {
+  const submitPassword = () => {
     const p = document.getElementById('password')
-    if (!(await validPassword(p?.value))) {
+    if (!validPassword(p?.value)) {
       const tips = document.getElementById('tips')
       if (tips) {
         tips.innerHTML = ''
@@ -43,7 +43,7 @@ export const PostLock = props => {
           />
           <button
             type='button'
-            onClick={() => { void submitPassword() }}
+            onClick={submitPassword}
             className='border-l border-[var(--tl-border)] bg-[var(--tl-accent-soft)] px-4 text-sm font-medium text-[var(--tl-accent)] hover:opacity-90'>
             <i className='fas fa-key mr-1' aria-hidden='true' />
             {locale.COMMON.SUBMIT}

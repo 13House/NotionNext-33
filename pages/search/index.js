@@ -29,12 +29,7 @@ const Search = props => {
     filteredPosts = []
   }
 
-  props = {
-    ...props,
-    posts: filteredPosts,
-    postCount: filteredPosts.length,
-    keyword: keyword || ''
-  }
+  props = { ...props, posts: filteredPosts }
 
   const theme = siteConfig('THEME', BLOG.THEME, props.NOTION_CONFIG)
   return <DynamicLayout theme={theme} layoutName='LayoutSearch' {...props} />
@@ -52,7 +47,6 @@ export async function getStaticProps({ locale }) {
   props.posts = allPages?.filter(
     page => page.type === 'Post' && page.status === 'Published'
   )
-  delete props.allPages
   return {
     props,
     revalidate: process.env.EXPORT

@@ -8,13 +8,14 @@ export const PostLock = ({ validPassword }) => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState(false)
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
     if (password === '') {
       setError(true)
       return
     }
-    setError(!(await validPassword(password)))
+    validPassword(password)
+    setError(false)
   }
 
   return (
@@ -34,7 +35,7 @@ export const PostLock = ({ validPassword }) => {
         </div>
 
         {/* Password Form */}
-        <form onSubmit={event => { void handleSubmit(event) }} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs text-gray-500 mb-2 tech-text">
               ENTER_PASSWORD:

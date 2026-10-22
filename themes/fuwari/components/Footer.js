@@ -1,7 +1,6 @@
 import { BeiAnGongAn } from '@/components/BeiAnGongAn'
 import BeiAnSite from '@/components/BeiAnSite'
 import { siteConfig } from '@/lib/config'
-import AnalyticsBusuanzi from '@/components/AnalyticsBusuanzi'
 
 const Footer = () => {
   const currentYear = new Date().getFullYear()
@@ -20,7 +19,7 @@ const Footer = () => {
         <p className='mt-1'>
           Powered by{' '}
           <a
-            href='https://github.com/notionnext-org/NotionNext'
+            href='https://github.com/tangly1024/NotionNext'
             target='_blank'
             rel='noopener noreferrer'
             className='fuwari-link font-semibold'>
@@ -34,7 +33,6 @@ const Footer = () => {
         <p className='mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs [&_a]:fuwari-link [&_br]:hidden'>
           <BeiAnSite />
           <BeiAnGongAn className='inline-flex items-center justify-center' />
-          <AnalyticsBusuanzi />
         </p>
       </div>
     </footer>

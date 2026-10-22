@@ -131,8 +131,7 @@ const preBuild = (function () {
 })()
 
 function isVersionedPageBlockCacheKey(key) {
-  const unscopedKey = String(key || '').replace(/^(?:0|[a-f0-9-]{36}):/i, '')
-  return /^page_block_.+_\d{10,}$/.test(unscopedKey)
+  return /^page_block_.+_\d{10,}$/.test(String(key || ''))
 }
 
 function pruneTransientNotionDataCache(dataDir) {

@@ -1,6 +1,5 @@
 import { BeiAnGongAn } from '@/components/BeiAnGongAn'
 import DarkModeButton from '@/components/DarkModeButton'
-import AnalyticsBusuanzi from '@/components/AnalyticsBusuanzi'
 import { siteConfig } from '@/lib/config'
 
 /**
@@ -24,7 +23,6 @@ export default function Footer(props) {
           &copy;{`${copyrightDate}`} {siteConfig('AUTHOR')}.
         </div>
         <div>All rights reserved.</div>
-        <AnalyticsBusuanzi />
       </div>
     </footer>
   )

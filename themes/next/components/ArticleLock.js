@@ -12,9 +12,9 @@ export const ArticleLock = props => {
   const { validPassword } = props
   const { locale } = useGlobal()
 
-  const submitPassword = async () => {
+  const submitPassword = () => {
     const p = document.getElementById('password')
-    if (!(await validPassword(p?.value))) {
+    if (!validPassword(p?.value)) {
       const tips = document.getElementById('tips')
       if (tips) {
         tips.innerHTML = ''
@@ -46,7 +46,7 @@ export const ArticleLock = props => {
               className="outline-none flex-1 min-w-0 text-sm pl-5 transition focus:shadow-lg font-light leading-10 bg-gray-100 dark:bg-gray-500"
             ></input>
             <div
-              onClick={() => { void submitPassword() }}
+              onClick={submitPassword}
               className="flex items-center justify-center whitespace-nowrap cursor-pointer px-4 leading-10 bg-gray-700 hover:bg-gray-400 text-white rounded-r duration-300 select-none"
             >
               <i className={'duration-200 cursor-pointer fas fa-key'} />

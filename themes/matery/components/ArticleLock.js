@@ -11,9 +11,9 @@ import { useEffect, useRef } from 'react'
 export const ArticleLock = props => {
   const { validPassword } = props
   const { locale } = useGlobal()
-  const submitPassword = async () => {
+  const submitPassword = () => {
     const p = document.getElementById('password')
-    if (!(await validPassword(p?.value))) {
+    if (!validPassword(p?.value)) {
       const tips = document.getElementById('tips')
       if (tips) {
         tips.innerHTML = ''
@@ -45,7 +45,7 @@ export const ArticleLock = props => {
             className='outline-none flex-1 min-w-0 text-sm pl-5 rounded-l transition focus:shadow-lg font-light leading-10 bg-gray-100 dark:bg-gray-500'
           />
           <div
-            onClick={() => { void submitPassword() }}
+            onClick={submitPassword}
             className='flex items-center justify-center whitespace-nowrap cursor-pointer px-4 leading-10 bg-indigo-500 hover:bg-indigo-400 text-white rounded-r duration-300 select-none'>
             <i className='duration-200 cursor-pointer fas fa-key' />
             <span className='ml-1'>{locale.COMMON.SUBMIT}</span>

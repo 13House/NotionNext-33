@@ -40,6 +40,7 @@ import { IconLoader2 } from '@tabler/icons-react'
 const LayoutBase = (props) => {
   const { children, post } = props
   const { onLoading, fullWidth, locale } = useGlobal()
+  const toc = post?.toc
 
   // Article detail page vertical layout
   const LAYOUT_VERTICAL =
@@ -143,7 +144,7 @@ const LayoutBase = (props) => {
         {!fullWidth && <Footer />}
 
         {/* Floating Controls (Unified) */}
-        {(!post || props.postUnlockUnavailable) && <FloatingControls {...props} post={undefined} />}
+        <FloatingControls toc={toc} {...props} />
       </div>
     </div>
   )
@@ -188,8 +189,6 @@ const LayoutSlug = (props) => {
   const waiting404 = siteConfig('POST_WAITING_TIME_FOR_404') * 1000
 
   useEffect(() => {
-    // Locked articles intentionally omit #article-wrapper while awaiting a password.
-    if (lock) return
     // Important: Store timeout ID and clean up on unmount to prevent
     // 404 redirects when user navigates away quickly
     const timeoutId = setTimeout(() => {
@@ -203,7 +202,7 @@ const LayoutSlug = (props) => {
     
     // Cleanup: cancel timeout when component unmounts or router changes
     return () => clearTimeout(timeoutId)
-  }, [router, lock, post?.id, waiting404])
+  }, [router])
 
   return (
     <>
@@ -243,8 +242,6 @@ const LayoutSlug = (props) => {
           </div>
         )
       )}
-      {/* Only the slug route receives the live post and lock state after unlocking. */}
-      {post && <FloatingControls key={`${post.id}:${Boolean(lock)}`} {...props} toc={lock ? undefined : post.toc} />}
     </>
   )
 }

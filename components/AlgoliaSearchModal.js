@@ -2,14 +2,12 @@ import replaceSearchResult from '@/components/Mark'
 import { siteConfig } from '@/lib/config'
 import { useGlobal } from '@/lib/global'
 import algoliasearch from 'algoliasearch'
+import throttle from 'lodash/throttle'
 import SmartLink from '@/components/SmartLink'
 import { useRouter } from 'next/router'
 import {
   Fragment,
-  useCallback,
-  useMemo,
   useEffect,
-  useId,
   useImperativeHandle,
   useRef,
   useState
@@ -48,61 +46,21 @@ export default function AlgoliaSearchModal({ cRef }) {
   const [isLoading, setIsLoading] = useState(false)
   const [isInputFocused, setIsInputFocused] = useState(false)
 
-  const [searchError, setSearchError] = useState('')
-  const searchTimer = useRef(null)
-  const highlightTimer = useRef(null)
-  const requestVersion = useRef(0)
-  const invalidateSearch = useCallback(() => {
-    requestVersion.current++
-    clearTimeout(searchTimer.current)
-    clearTimeout(highlightTimer.current)
-  }, [])
   const inputRef = useRef(null)
-  const dialogRef = useRef(null)
-  const returnFocusRef = useRef(null)
-  const restoringFocus = useRef(false)
-  const titleId = useId()
   const router = useRouter()
-  const appId = siteConfig('ALGOLIA_APP_ID')
-  const searchKey = siteConfig('ALGOLIA_SEARCH_ONLY_APP_KEY')
-  const indexName = siteConfig('ALGOLIA_INDEX')
-  const index = useMemo(() => appId && searchKey && indexName
-    ? algoliasearch(appId, searchKey).initIndex(indexName) : null,
-  [appId, searchKey, indexName])
-  const hasSearchIndex = Boolean(index)
-
-  const closeModal = useCallback(() => {
-    invalidateSearch()
-    setIsModalOpen(false)
-  }, [invalidateSearch])
-
-  function openSearch() {
-    if (!appId || restoringFocus.current) return
-    if (!searchKey || !indexName) {
-      void router.push('/search')
-      return
-    }
-    if (isModalOpen) return
-    returnFocusRef.current = document.activeElement
-    setIsModalOpen(true)
-  }
 
   /**
    * 快捷键设置
    */
-  useHotkeys(
-    'ctrl+k',
-    e => {
-      e.preventDefault()
-      openSearch()
-    },
-    { enabled: Boolean(appId) }
-  )
+  useHotkeys('ctrl+k', e => {
+    e.preventDefault()
+    setIsModalOpen(true)
+  })
   // 修改快捷键的使用逻辑
   useHotkeys(
     'down',
     e => {
-      if (isModalOpen && isInputFocused) {
+      if (isInputFocused) {
         // 只有在聚焦时才触发
         e.preventDefault()
         if (activeIndex < searchResults.length - 1) {
@@ -115,7 +73,7 @@ export default function AlgoliaSearchModal({ cRef }) {
   useHotkeys(
     'up',
     e => {
-      if (isModalOpen && isInputFocused) {
+      if (isInputFocused) {
         e.preventDefault()
         if (activeIndex > 0) {
           setActiveIndex(activeIndex - 1)
@@ -125,27 +83,33 @@ export default function AlgoliaSearchModal({ cRef }) {
     { enableOnFormTags: true }
   )
   useHotkeys(
+    'esc',
+    e => {
+      if (isInputFocused) {
+        e.preventDefault()
+        setIsModalOpen(false)
+      }
+    },
+    { enableOnFormTags: true }
+  )
+  useHotkeys(
     'enter',
     e => {
-      if (isModalOpen && isInputFocused && searchResults.length > 0) {
-        onJumpSearchResult()
+      if (isInputFocused && searchResults.length > 0) {
+        onJumpSearchResult(index)
       }
     },
     { enableOnFormTags: true }
   )
   // 跳转Search结果
-  const onJumpSearchResult = (targetIndex) => {
-    const i = targetIndex !== undefined ? targetIndex : activeIndex
-    if (searchResults.length > 0 && searchResults[i]) {
-      const searchResult = searchResults[i]
+  const onJumpSearchResult = () => {
+    if (searchResults.length > 0) {
+      const searchResult = searchResults[activeIndex]
       window.location.href = `${siteConfig('SUB_PATH', '')}/${searchResult.slug || searchResult.objectID}`
     }
   }
 
-  const resetSearch = useCallback(() => {
-    invalidateSearch()
-    setIsLoading(false)
-    setSearchError('')
+  const resetSearch = () => {
     setActiveIndex(0)
     setKeyword('')
     setSearchResults([])
@@ -153,169 +117,155 @@ export default function AlgoliaSearchModal({ cRef }) {
     setTotalPage(0)
     setTotalHit(0)
     if (inputRef.current) inputRef.current.value = ''
-  }, [invalidateSearch])
+  }
 
   /**
    * 页面路径变化后，自动关闭此modal
    */
   useEffect(() => {
     setIsModalOpen(false)
-  }, [router.asPath])
+  }, [router])
 
   /**
-   * 管理整个弹窗的键盘操作与焦点，关闭或卸载时还原到打开入口。
+   * 自动聚焦搜索框
    */
   useEffect(() => {
-    if (!isModalOpen || !hasSearchIndex) {
-      if (!hasSearchIndex) setIsModalOpen(false)
+    if (isModalOpen) {
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 100)
+    } else {
       resetSearch()
-      return
     }
-    const dialog = dialogRef.current
-    const focusInput = () => (inputRef.current || dialog)?.focus()
-    const handleKeyDown = event => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        event.stopPropagation()
-        closeModal()
-        return
-      }
-      if (event.key !== 'Tab') return
-      // Re-read after results, retries and pagination change the available controls.
-      const focusable = Array.from(dialog.querySelectorAll(
-        'a[href], button:not(:disabled), input:not(:disabled), [tabindex]:not([tabindex="-1"])'
-      )).filter(element => element.tabIndex >= 0 && !element.closest('[hidden], [inert], [aria-hidden="true"]'))
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-      const outside = !dialog.contains(document.activeElement)
-      if (!first) {
-        event.preventDefault()
-        dialog.focus()
-      } else if (event.shiftKey && (document.activeElement === first || outside)) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && (document.activeElement === last || outside)) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-    const keepFocusInside = event => {
-      if (!dialog.contains(event.target)) focusInput()
-    }
-    document.addEventListener('keydown', handleKeyDown, true)
-    document.addEventListener('focusin', keepFocusInside)
-    focusInput()
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown, true)
-      document.removeEventListener('focusin', keepFocusInside)
-      const target = returnFocusRef.current
-      returnFocusRef.current = null
-      if (target?.isConnected) {
-        // GitBook opens search on focus; returning focus must not reopen it.
-        restoringFocus.current = true
-        try {
-          target.focus({ preventScroll: true })
-        } finally {
-          restoringFocus.current = false
-        }
-      }
-    }
-  }, [isModalOpen, hasSearchIndex, closeModal, resetSearch])
+  }, [isModalOpen])
 
   /**
    * 对外暴露方法
    **/
   useImperativeHandle(cRef, () => {
     return {
-      openSearch
+      openSearch: () => {
+        setIsModalOpen(true)
+      }
     }
   })
 
-  useEffect(() => invalidateSearch, [invalidateSearch, index])
+  const client = algoliasearch(
+    siteConfig('ALGOLIA_APP_ID'),
+    siteConfig('ALGOLIA_SEARCH_ONLY_APP_KEY')
+  )
+  const index = client.initIndex(siteConfig('ALGOLIA_INDEX'))
 
-  const handleSearch = async (query, page = 0) => {
-    invalidateSearch()
-    const version = requestVersion.current
+  /**
+   * 搜索
+   * @param {*} query
+   */
+  const handleSearch = async (query, page) => {
     setKeyword(query)
     setPage(page)
     setSearchResults([])
-    setSearchError('')
     setUseTime(0)
     setTotalPage(0)
     setTotalHit(0)
     setActiveIndex(0)
-    setIsLoading(Boolean(query && index))
-    if (!query || !index) return
+    if (!query || query === '') {
+      return
+    }
+    setIsLoading(true)
     try {
-      const { hits, nbHits, nbPages, processingTimeMS } = await index.search(query, { page, hitsPerPage: 10 })
-      if (version !== requestVersion.current) return
+      const res = await index.search(query, { page, hitsPerPage: 10 })
+      const { hits, nbHits, nbPages, processingTimeMS } = res
       setUseTime(processingTimeMS)
       setTotalPage(nbPages)
       setTotalHit(nbHits)
       setSearchResults(hits)
-      highlightTimer.current = setTimeout(() => {
-        if (version !== requestVersion.current) return
-        const doms = document.getElementById('search-wrapper')?.getElementsByClassName('replace')
-        if (doms) replaceSearchResult({ doms, search: query, target: { element: 'span', className: 'font-bold border-b border-dashed' } })
-      }, 0)
-    } catch {
-      if (version === requestVersion.current) setSearchError('搜索暂时不可用，请重试。')
-    } finally {
-      if (version === requestVersion.current) setIsLoading(false)
+      setIsLoading(false)
+      const doms = document
+        .getElementById('search-wrapper')
+        .getElementsByClassName('replace')
+
+      setTimeout(() => {
+        replaceSearchResult({
+          doms,
+          search: query,
+          target: {
+            element: 'span',
+            className: 'font-bold border-b border-dashed'
+          }
+        })
+      }, 200) // 延时高亮
+    } catch (error) {
+      console.error('Algolia search error:', error)
     }
   }
 
-  const handleInputChange = event => {
-    const query = event.target.value
-    invalidateSearch() // Invalidate immediately, including the debounce window.
-    setKeyword(query)
-    setSearchResults([])
-    setSearchError('')
-    setIsLoading(Boolean(query))
-    if (!query) {
-      resetSearch()
-      return
+  // 定义节流函数，确保在用户停止输入一段时间后才会调用处理搜索的方法
+  const throttledHandleInputChange = useRef(
+    throttle((query, page = 0) => {
+      handleSearch(query, page)
+    }, 1000)
+  )
+
+  // 用于存储搜索延迟的计时器
+  const searchTimer = useRef(null)
+
+  // 修改input的onChange事件处理函数
+  const handleInputChange = e => {
+    const query = e.target.value
+
+    // 如果已经有计时器在等待搜索，先清除之前的计时器
+    if (searchTimer.current) {
+      clearTimeout(searchTimer.current)
     }
-    searchTimer.current = setTimeout(() => { void handleSearch(query) }, 600)
+
+    // 设置新的计时器，在用户停止输入一段时间后触发搜索
+    searchTimer.current = setTimeout(() => {
+      throttledHandleInputChange.current(query)
+    }, 800)
   }
 
-  const switchPage = page => handleSearch(keyword, page)
+  /**
+   * 切换页码
+   * @param {*} page
+   */
+  const switchPage = page => {
+    throttledHandleInputChange.current(keyword, page)
+  }
 
-  if (!index) {
+  /**
+   * 关闭弹窗
+   */
+  const closeModal = () => {
+    setIsModalOpen(false)
+  }
+
+  if (!siteConfig('ALGOLIA_APP_ID')) {
     return <></>
   }
   return (
     <div
       id='search-wrapper'
-      aria-hidden={!isModalOpen}
-      inert={isModalOpen ? undefined : ''}
       className={`${
         isModalOpen ? 'opacity-100' : 'invisible opacity-0 pointer-events-none'
       } z-30 fixed h-screen w-screen left-0 top-0 sm:mt-[10vh] flex items-start justify-center mt-0`}>
       {/* 模态框 */}
       <div
-        ref={dialogRef}
-        role='dialog'
-        aria-modal={isModalOpen ? true : undefined}
-        aria-labelledby={titleId}
-        tabIndex={-1}
         className={`${
           isModalOpen ? 'opacity-100' : 'invisible opacity-0 translate-y-10'
         } max-h-[80vh] flex flex-col justify-between w-full min-h-[10rem] h-full md:h-fit max-w-xl dark:bg-hexo-black-gray dark:border-gray-800 bg-white dark:bg- p-5 rounded-lg z-50 shadow border hover:border-blue-600 duration-300 transition-all `}>
         <div className='flex justify-between items-center'>
-          <div id={titleId} className='text-2xl text-blue-600 dark:text-yellow-600 font-bold'>
+          <div className='text-2xl text-blue-600 dark:text-yellow-600 font-bold'>
             搜索
           </div>
           <div>
-            <button type='button' aria-label='关闭搜索'
+            <i
               className='text-gray-600 fa-solid fa-xmark p-1 cursor-pointer hover:text-blue-600'
-              onClick={closeModal} />
+              onClick={closeModal}></i>
           </div>
         </div>
 
         <input
           type='text'
-          aria-label='搜索关键词'
           placeholder='在这里输入搜索关键词...'
           onChange={e => handleInputChange(e)}
           onFocus={() => setIsInputFocused(true)} // 聚焦时
@@ -328,9 +278,7 @@ export default function AlgoliaSearchModal({ cRef }) {
         <div className='mb-4'>
           <TagGroups />
         </div>
-        {isLoading && <p role='status' className='text-center text-gray-500'>正在搜索…</p>}
-        {searchError && <p role='alert' className='text-center text-red-600'>{searchError} <button type='button' className='underline' onClick={() => { void handleSearch(keyword, page) }}>重试</button></p>}
-        {searchResults.length === 0 && keyword && !isLoading && !searchError && (
+        {searchResults.length === 0 && keyword && !isLoading && (
           <div>
             <p className=' text-slate-600 text-center my-4 text-base'>
               {' '}
@@ -344,12 +292,12 @@ export default function AlgoliaSearchModal({ cRef }) {
             <li
               key={result.objectID}
               onMouseEnter={() => setActiveIndex(index)}
-              className={`cursor-pointer replace my-2 duration-100
+              onClick={() => onJumpSearchResult(index)}
+              className={`cursor-pointer replace my-2 p-2 duration-100 
               rounded-lg
               ${activeIndex === index ? 'bg-blue-600 dark:bg-yellow-600' : ''}`}>
               <a
-                href={`${siteConfig('SUB_PATH', '')}/${result.slug || result.objectID}`}
-                className={`block p-2 ${activeIndex === index ? ' text-white' : ' text-black dark:text-gray-300 '}`}>
+                className={`${activeIndex === index ? ' text-white' : ' text-black dark:text-gray-300 '}`}>
                 {result.title}
               </a>
             </li>
@@ -450,15 +398,12 @@ function Pagination(props) {
             : 'hover:text-blue-600 hover:font-bold dark:text-gray-300'
 
         return (
-          <button
-            type='button'
-            aria-label={`第 ${i + 1} 页`}
-            aria-current={page === i ? 'page' : undefined}
+          <div
             onClick={() => switchPage(i)}
             className={`text-center cursor-pointer w-6 h-6 ${classNames}`}
             key={i}>
             {i + 1}
-          </button>
+          </div>
         )
       })}
     </div>

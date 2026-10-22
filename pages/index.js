@@ -1,4 +1,3 @@
-import { getPublicPostBlockMap } from '@/lib/utils/publicPost'
 import BLOG from '@/blog.config'
 import { siteConfig } from '@/lib/config'
 import {
@@ -96,7 +95,7 @@ export async function getStaticProps(req) {
       previewTargets.map(post =>
         previewLimit(async () => {
           const rawBlockMap = await getPostBlocks(post.id, 'slug', POST_PREVIEW_LINES)
-          post.blockMap = getPublicPostBlockMap(post, adapterNotionBlockMap(rawBlockMap), props.allPages)
+          post.blockMap = adapterNotionBlockMap(rawBlockMap)
           if (post.blockMap?.block) {
             post.blockMap.block = formatNotionBlock(post.blockMap.block)
           }

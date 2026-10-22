@@ -1,4 +1,3 @@
-import { getPublicPostBlockMap } from '@/lib/utils/publicPost'
 import BLOG from '@/blog.config'
 import { getDataFromCache } from '@/lib/cache/cache_manager'
 import { siteConfig } from '@/lib/config'
@@ -42,7 +41,6 @@ export async function getStaticProps({ params: { keyword }, locale }) {
     props.posts = props.posts?.slice(0, POSTS_PER_PAGE)
   }
   props.keyword = keyword
-  delete props.allPages
   return {
     props,
     revalidate: process.env.EXPORT
@@ -75,7 +73,7 @@ async function filterByMemCache(allPosts, keyword) {
   }
   for (const post of allPosts) {
     const cacheKey = getPageBlockCacheKey(post.id, post.lastEditedDate)
-    const page = getPublicPostBlockMap(post, await getDataFromCache(cacheKey, true), allPosts)
+    const page = await getDataFromCache(cacheKey, true)
     const tagContent =
       post?.tags && Array.isArray(post?.tags) ? post?.tags.join(' ') : ''
     const categoryContent =

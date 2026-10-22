@@ -11,11 +11,6 @@ let lock = false
 const SearchInput = ({ currentSearch, cRef, className }) => {
   const searchInputRef = useRef()
   const { searchModal, setFilteredNavPages, allNavPages } = useGitBookGlobal()
-  const hasAlgolia = Boolean(
-    siteConfig('ALGOLIA_APP_ID') &&
-    siteConfig('ALGOLIA_SEARCH_ONLY_APP_KEY') &&
-    siteConfig('ALGOLIA_INDEX')
-  )
 
   useImperativeHandle(cRef, () => {
     return {
@@ -36,7 +31,7 @@ const SearchInput = ({ currentSearch, cRef, className }) => {
 
   const handleSearch = () => {
     // 使用Algolia
-    if (hasAlgolia) {
+    if (siteConfig('ALGOLIA_APP_ID')) {
       searchModal?.current?.openSearch()
     }
     let keyword = searchInputRef.current.value
@@ -68,11 +63,8 @@ const SearchInput = ({ currentSearch, cRef, className }) => {
    */
   const handleKeyUp = e => {
     // 使用Algolia
-    if (hasAlgolia) {
-      // Esc closes the dialog on keydown and returns focus here before keyup.
-      if (e.key !== 'Escape' && e.keyCode !== 27) {
-        searchModal?.current?.openSearch()
-      }
+    if (siteConfig('ALGOLIA_APP_ID')) {
+      searchModal?.current?.openSearch()
       return
     }
 
@@ -87,7 +79,7 @@ const SearchInput = ({ currentSearch, cRef, className }) => {
 
   const handleFocus = () => {
     // 使用Algolia
-    if (hasAlgolia) {
+    if (siteConfig('ALGOLIA_APP_ID')) {
       searchModal?.current?.openSearch()
     }
   }

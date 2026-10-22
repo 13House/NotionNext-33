@@ -40,8 +40,7 @@ export async function getStaticPaths() {
  */
 export async function getStaticProps({
   params: { prefix, slug, suffix },
-  locale,
-  revalidateReason
+  locale
 }) {
 
   const props = await resolvePostProps({
@@ -49,7 +48,6 @@ export async function getStaticProps({
     slug,
     suffix,
     locale,
-    revalidateReason,
   })
 
   return {

@@ -74,7 +74,7 @@ const LayoutBase = props => {
       <PostHero {...props} />
     ) : null
 
-  const floatRightBottom = post ? <JumpToCommentButton post={post} /> : null
+  const floatRightBottom = post ? <JumpToCommentButton /> : null
 
   // Algolia搜索框
   const searchModal = useRef(null)

@@ -12,9 +12,9 @@ export const PostLock = props => {
   const { validPassword } = props
   const { locale } = useGlobal()
 
-  const submitPassword = async () => {
+  const submitPassword = () => {
     const p = document.getElementById('password')
-    if (!(await validPassword(p?.value))) {
+    if (!validPassword(p?.value)) {
       const tips = document.getElementById('tips')
       if (tips) {
         tips.innerHTML = ''
@@ -46,7 +46,7 @@ export const PostLock = props => {
             ref={passwordInputRef} // 绑定ref到passwordInputRef变量
             className='outline-none flex-1 min-w-0 text-sm pl-5 rounded-l transition focus:shadow-lg font-light leading-10 text-black dark:bg-gray-500 bg-gray-50'></input>
           <div
-            onClick={() => { void submitPassword() }}
+            onClick={submitPassword}
             className='flex items-center justify-center whitespace-nowrap cursor-pointer px-4 leading-10 rounded-r duration-300 bg-gray-300 select-none'>
             <i
               className={

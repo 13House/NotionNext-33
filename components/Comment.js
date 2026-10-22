@@ -1,6 +1,5 @@
 import Tabs from '@/components/Tabs'
 import { siteConfig } from '@/lib/config'
-import { hasEnabledComments, isCommentProviderEnabled } from '@/lib/utils/comments'
 import { isBrowser, isSearchEngineBot } from '@/lib/utils'
 import { stripTransientQueryParamsFromAsPath } from '@/lib/utils/stripTransientUrlParams'
 import dynamic from 'next/dynamic'
@@ -80,7 +79,7 @@ const Comment = ({ frontMatter, className }) => {
     }
   }, [router.isReady, router.asPath, router.query])
 
-  if (!frontMatter || !hasEnabledComments(siteConfig)) {
+  if (!frontMatter) {
     return null
   }
 
@@ -110,43 +109,43 @@ const Comment = ({ frontMatter, className }) => {
 
       {shouldLoad && (
         <Tabs>
-          {isCommentProviderEnabled(COMMENT_ARTALK_SERVER) && (
+          {COMMENT_ARTALK_SERVER && (
             <div key='Artalk'>
               <Artalk />
             </div>
           )}
 
-          {isCommentProviderEnabled(COMMENT_TWIKOO_ENV_ID) && (
+          {COMMENT_TWIKOO_ENV_ID && (
             <div key='Twikoo'>
               <TwikooCompenent />
             </div>
           )}
 
-          {isCommentProviderEnabled(COMMENT_WALINE_SERVER_URL) && (
+          {COMMENT_WALINE_SERVER_URL && (
             <div key='Waline'>
               <WalineComponent />
             </div>
           )}
 
-          {isCommentProviderEnabled(COMMENT_VALINE_APP_ID) && (
+          {COMMENT_VALINE_APP_ID && (
             <div key='Valine' name='reply'>
               <ValineComponent path={frontMatter.id} />
             </div>
           )}
 
-          {isCommentProviderEnabled(COMMENT_GISCUS_REPO) && (
+          {COMMENT_GISCUS_REPO && (
             <div key='Giscus'>
               <GiscusComponent className='px-2' />
             </div>
           )}
 
-          {isCommentProviderEnabled(COMMENT_CUSDIS_APP_ID) && (
+          {COMMENT_CUSDIS_APP_ID && (
             <div key='Cusdis'>
               <CusdisComponent frontMatter={frontMatter} />
             </div>
           )}
 
-          {isCommentProviderEnabled(COMMENT_UTTERRANCES_REPO) && (
+          {COMMENT_UTTERRANCES_REPO && (
             <div key='Utterance'>
               <UtterancesComponent
                 issueTerm={frontMatter.id}
@@ -155,13 +154,13 @@ const Comment = ({ frontMatter, className }) => {
             </div>
           )}
 
-          {isCommentProviderEnabled(COMMENT_GITALK_CLIENT_ID) && (
+          {COMMENT_GITALK_CLIENT_ID && (
             <div key='GitTalk'>
               <GitalkComponent frontMatter={frontMatter} />
             </div>
           )}
 
-          {isCommentProviderEnabled(COMMENT_WEBMENTION_ENABLE) && (
+          {COMMENT_WEBMENTION_ENABLE && (
             <div key='WebMention'>
               <WebMentionComponent frontMatter={frontMatter} className='px-2' />
             </div>
